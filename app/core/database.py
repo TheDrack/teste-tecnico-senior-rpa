@@ -6,6 +6,7 @@ incluindo criação de engine, sessões e gerenciamento de transações.
 
 A configuração é obtida do módulo config.py que carrega do .env
 """
+
 from typing import Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -22,14 +23,14 @@ Base = declarative_base()
 def create_db_engine() -> Engine:
     """
     Cria e retorna o engine do SQLAlchemy.
-    
+
     O engine é configurado com:
     - Pool de conexões para melhor performance
     - Echo SQL quando em modo debug
-    
+
     Returns:
         Engine: Engine do SQLAlchemy configurado
-        
+
     Example:
         >>> engine = create_db_engine()
         >>> # Use o engine para criar sessões ou operações diretas
@@ -49,24 +50,20 @@ engine = create_db_engine()
 
 
 # Session factory - cria novas sessões de banco de dados
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:
     """
     Dependency que fornece uma sessão de banco de dados.
-    
+
     Esta função é usada como dependency do FastAPI para injetar
     uma sessão de banco em cada request. A sessão é automaticamente
     fechada após o uso.
-    
+
     Yields:
         Session: Sessão do SQLAlchemy
-        
+
     Example:
         >>> from fastapi import Depends
         >>> @app.get("/items/")
@@ -83,12 +80,12 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     """
     Inicializa o banco de dados criando todas as tabelas.
-    
+
     Esta função deve ser chamada na inicialização da aplicação
     para garantir que todas as tabelas existam.
-    
+
     NOTA: Em produção, use Alembic para migrations ao invés desta função.
-    
+
     Example:
         >>> init_db()
         >>> # Todas as tabelas foram criadas
@@ -96,7 +93,7 @@ def init_db() -> None:
     # Importar todos os models aqui para que sejam registrados no Base
     # PREENCHER: Importar models quando implementados
     # from app import models
-    
+
     # Criar todas as tabelas
     Base.metadata.create_all(bind=engine)
 
@@ -104,10 +101,10 @@ def init_db() -> None:
 def drop_db() -> None:
     """
     Remove todas as tabelas do banco de dados.
-    
+
     ATENÇÃO: Esta função é destrutiva e deve ser usada apenas
     em ambientes de desenvolvimento/testes.
-    
+
     Example:
         >>> drop_db()
         >>> # Todas as tabelas foram removidas

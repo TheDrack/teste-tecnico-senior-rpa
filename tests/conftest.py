@@ -2,6 +2,7 @@
 Global test configuration and fixtures.
 Provides DB, RabbitMQ, and App fixtures for all tests.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -26,13 +27,13 @@ def test_db():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    
+
     # Create tables
     # Uncomment when models are implemented:
     # Base.metadata.create_all(bind=engine)
-    
+
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+
     db = TestingSessionLocal()
     try:
         yield db
@@ -52,14 +53,15 @@ def test_client(test_db):
     #         yield test_db
     #     finally:
     #         pass
-    # 
+    #
     # app.dependency_overrides[get_db] = override_get_db
     # client = TestClient(app)
     # yield client
     # app.dependency_overrides.clear()
-    
+
     # Temporary placeholder
     from app.main import app
+
     yield TestClient(app)
 
 
@@ -70,35 +72,37 @@ def mock_rabbitmq(monkeypatch):
     Useful for unit tests and some integration tests.
     """
     messages = []
-    
+
     class MockChannel:
         def basic_publish(self, exchange, routing_key, body, properties=None):
-            messages.append({
-                "exchange": exchange,
-                "routing_key": routing_key,
-                "body": body,
-                "properties": properties
-            })
-        
+            messages.append(
+                {
+                    "exchange": exchange,
+                    "routing_key": routing_key,
+                    "body": body,
+                    "properties": properties,
+                }
+            )
+
         def queue_declare(self, queue, durable=False):
             pass
-        
+
         def basic_consume(self, queue, on_message_callback, auto_ack=False):
             pass
-    
+
     class MockConnection:
         def channel(self):
             return MockChannel()
-        
+
         def close(self):
             pass
-    
+
     def mock_connect(*args, **kwargs):
         return MockConnection()
-    
+
     # This will be used to patch pika.BlockingConnection
     # monkeypatch.setattr("pika.BlockingConnection", mock_connect)
-    
+
     yield messages
 
 
@@ -135,13 +139,13 @@ def sample_oscar_data():
             "title": "The Hurt Locker",
             "nominations": 9,
             "awards": 6,
-            "best_picture": True
+            "best_picture": True,
         },
         {
             "year": 2010,
             "title": "Avatar",
             "nominations": 9,
             "awards": 3,
-            "best_picture": False
-        }
+            "best_picture": False,
+        },
     ]

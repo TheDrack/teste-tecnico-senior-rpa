@@ -4,6 +4,31 @@ Sistema de coleta de dados de múltiplas fontes web com gerenciamento de jobs at
 
 > 📋 Para detalhes completos dos requisitos técnicos, veja [REQUIREMENTS.md](REQUIREMENTS.md)
 
+## ⚠️ Template Base - PREENCHER Configurações
+
+Este repositório contém uma **estrutura base completa** para um sistema RPA de scraping com:
+- ✅ **Type Hints** em todo o código
+- ✅ **Documentação completa** com docstrings
+- ✅ **Testes unitários** prontos para execução
+- ✅ **GitHub Actions** configurado para CI/CD
+- ✅ **Arquitetura completa**: FastAPI + RabbitMQ + PostgreSQL + Selenium + BeautifulSoup
+
+### 📝 O que você precisa PREENCHER:
+
+1. **Configuração no `.env`** (copie de `.env.example`):
+   - Credenciais do PostgreSQL (`DATABASE_URL`)
+   - Credenciais do RabbitMQ (`RABBITMQ_HOST`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`)
+   - URLs dos sites para scraping (`HOCKEY_URL`, `OSCAR_URL`)
+
+2. **Seletores HTML/CSS nos scrapers**:
+   - `app/static_scraper/hockey.py`: Adaptar seletores CSS conforme HTML do site
+   - `app/dynamic_scraper/oscar.py`: Adaptar seletores Selenium conforme DOM do site
+
+3. **GitHub Actions** (opcional):
+   - Configurar secrets para deploy no GCR (`.github/workflows/ci.yml`)
+
+Todos os pontos marcados com `# PREENCHER:` ou `"PREENCHER_*"` devem ser configurados conforme seu ambiente e site alvo.
+
 ## Estrutura do Projeto
 
 ```
