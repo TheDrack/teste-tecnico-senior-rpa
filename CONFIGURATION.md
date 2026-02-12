@@ -225,9 +225,9 @@ Use este checklist para garantir que tudo está configurado:
 
 ### No Código
 
-- **config.py**: `/home/runner/work/teste-tecnico-senior-rpa/teste-tecnico-senior-rpa/app/core/config.py`
-- **.env.example**: `/home/runner/work/teste-tecnico-senior-rpa/teste-tecnico-senior-rpa/.env.example`
-- **docker-compose.yml**: `/home/runner/work/teste-tecnico-senior-rpa/teste-tecnico-senior-rpa/docker-compose.yml`
+- **config.py**: `app/core/config.py`
+- **.env.example**: `.env.example`
+- **docker-compose.yml**: `docker-compose.yml`
 
 ### No GitHub
 
