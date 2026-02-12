@@ -8,7 +8,12 @@ Este repositório contém uma **estrutura base completa e funcional** para um si
 ✅ **Bem comentado e documentado para fácil entendimento**  
 ✅ **Garantia de Type Hints em todo o código**  
 ✅ **Campos com valores específicos marcados com PREENCHER**  
+✅ **URLs dos sites preenchidas de REQUIREMENTS.md**  
+✅ **GitHub Secrets configurado para dados sensíveis**  
+✅ **Documentação completa em CONFIGURATION.md**  
 ✅ **Testes padrões rodando com GitHub Actions**
+
+> ⚙️ **Veja [CONFIGURATION.md](CONFIGURATION.md) para referência completa de todas as configurações**
 
 ---
 
@@ -144,30 +149,65 @@ Este repositório contém uma **estrutura base completa e funcional** para um si
 ### ✅ Documentação
 
 #### Arquivos criados:
-- ✅ `TEMPLATE.md` - Guia completo de uso (8200+ caracteres)
+- ✅ `CONFIGURATION.md` - Referência completa de configuração (9000+ caracteres)
+- ✅ `TEMPLATE.md` - Guia completo de uso (8500+ caracteres)
 - ✅ `README.md` - Atualizado com instruções do template
 - ✅ `.env.example` - Exemplo completo com todos os campos
 - ✅ Docstrings em todos os módulos e funções
 
 ---
 
+## ✅ Informações Preenchidas de REQUIREMENTS.md
+
+### URLs dos Sites (Extraídas e Configuradas)
+
+| Campo | Valor | Onde Configurado |
+|-------|-------|------------------|
+| **HOCKEY_URL** | `https://www.scrapethissite.com/pages/forms/` | `.env.example`, `config.py` |
+| **OSCAR_URL** | `https://www.scrapethissite.com/pages/ajax-javascript/` | `.env.example`, `config.py` |
+
+### Portas dos Serviços (Documentadas)
+
+| Serviço | Porta | Configuração |
+|---------|-------|--------------|
+| **API** | `8000` | Docker Compose / GitHub Secrets |
+| **PostgreSQL** | `5432` | Docker Compose / GitHub Secrets |
+| **RabbitMQ** | `5672` | Docker Compose / GitHub Secrets |
+| **RabbitMQ Management** | `15672` | Docker Compose / GitHub Secrets |
+
+> **Para produção**: Use GitHub Secrets em vez de valores hardcoded  
+> **Veja**: [CONFIGURATION.md](CONFIGURATION.md) para instruções completas
+
+---
+
 ## 🔲 O que PREENCHER
 
-### 1. Arquivo `.env`
+### 1. Arquivo `.env` (para desenvolvimento local)
 
 ```env
-# PostgreSQL
-DATABASE_URL=postgresql://PREENCHER_USER:PREENCHER_PASSWORD@PREENCHER_HOST:5432/PREENCHER_DB
+# PostgreSQL (use valores do Docker Compose ou seus próprios)
+DATABASE_URL=postgresql://rpa_user:rpa_password@postgres:5432/rpa_db
 
-# RabbitMQ
-RABBITMQ_HOST=PREENCHER_HOST
-RABBITMQ_USER=PREENCHER_USER
-RABBITMQ_PASSWORD=PREENCHER_PASSWORD
+# RabbitMQ (use valores do Docker Compose ou seus próprios)
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_PORT=5672
+RABBITMQ_USER=rpa_user
+RABBITMQ_PASSWORD=rpa_password
 
-# URLs dos sites
-HOCKEY_URL=https://PREENCHER_URL_HOCKEY
-OSCAR_URL=https://PREENCHER_URL_OSCAR
+# URLs dos sites (JÁ PREENCHIDAS)
+HOCKEY_URL=https://www.scrapethissite.com/pages/forms/
+OSCAR_URL=https://www.scrapethissite.com/pages/ajax-javascript/
 ```
+
+### 1b. GitHub Secrets (para produção)
+
+Configure os seguintes secrets no GitHub (`Settings` → `Secrets and variables` → `Actions`):
+- `DATABASE_URL` - URL completa do PostgreSQL
+- `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`
+- `API_PORT`, `DB_PORT`, `RABBITMQ_MGMT_PORT` (portas de acesso)
+- (Opcional) `GCP_CREDENTIALS`, `GCP_PROJECT_ID` para deploy
+
+**Veja [CONFIGURATION.md](CONFIGURATION.md) para instruções detalhadas**
 
 ### 2. Seletores nos Scrapers
 
@@ -187,11 +227,13 @@ movie_elements = self.driver.find_elements(By.CLASS_NAME, "film")  # ADAPTAR
 # ... outros seletores
 ```
 
-### 3. GitHub Actions (Opcional)
+### 3. GitHub Actions
 
-**Deploy** (`.github/workflows/ci.yml`):
-- Descomentar seção de deploy
-- Configurar secrets: `GCP_CREDENTIALS`, `GCP_PROJECT_ID`
+**Secrets Configurados** (`.github/workflows/ci.yml`):
+- ✅ Documentação completa dos secrets necessários no cabeçalho
+- ✅ Exemplos de uso em jobs de teste e build
+- ✅ Instruções para configurar credenciais sensíveis
+- 🔲 Deploy para GCR (opcional - descomentar quando configurar)
 
 ---
 
