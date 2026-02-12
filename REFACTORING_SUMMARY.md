@@ -342,29 +342,7 @@ mypy app/ --ignore-missing-imports
   - [ ] RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD
   - [ ] GCP_CREDENTIALS (se usar deploy GCR)
   
-- [ ] Configurar Alembic para migrations
-  ```bash
-  alembic init alembic
-  alembic revision --autogenerate -m "Initial migration"
-  alembic upgrade head
-  ```
 
-- [ ] Adicionar monitoramento
-  - [ ] Sentry para error tracking
-  - [ ] Prometheus métricas
-  - [ ] Health checks
-
-- [ ] Configurar auto-scaling (opcional)
-  - [ ] Kubernetes manifests
-  - [ ] Horizontal Pod Autoscaler
-
-### Para Melhorias Opcionais
-
-- [ ] Cache layer (Redis)
-- [ ] Rate limiting
-- [ ] API authentication (JWT)
-- [ ] Swagger UI customização
-- [ ] Webhooks para notificações
 
 ---
 
