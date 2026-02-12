@@ -135,7 +135,7 @@ Conforme solicitado, os seguintes campos **mantêm PREENCHER** pois contêm dado
 
 ## 🔑 GitHub Secrets - Configuração para Produção
 
-Conforme solicitado, **dados sensíveis como portas de acesso** devem usar GitHub Environment variables:
+Conforme solicitado, **dados sensíveis como portas de acesso** devem usar GitHub environment variables:
 
 ### Secrets Necessários
 
