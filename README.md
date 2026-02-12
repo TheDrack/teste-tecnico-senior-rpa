@@ -1,4 +1,8 @@
-# Teste Técnico - Desenvolvedor Senior RPA
+# RPA Scraping System
+
+Sistema de coleta de dados de múltiplas fontes web com gerenciamento de jobs através de filas de mensagens e API REST.
+
+> 📋 Para detalhes completos dos requisitos técnicos, veja [REQUIREMENTS.md](REQUIREMENTS.md)
 
 ## Estrutura do Projeto
 
@@ -30,40 +34,7 @@
 └── requirements.txt      # Dependências Python
 ```
 
-## Como Executar
-
-```bash
-# Copiar exemplo de variáveis de ambiente
-cp .env.example .env
-
-# Subir os serviços
-docker-compose up --build
-
-# A API estará disponível em http://localhost:8000
-# RabbitMQ Management em http://localhost:15672
-```
-
----
-
-## Contexto
-
-Você foi contratado para desenvolver um sistema de coleta de dados que extrai informações de múltiplas fontes web, gerencia jobs através de filas de mensagens, e disponibiliza os dados via API REST.
-
-## Objetivo
-
-Construir uma aplicação que:
-
-1. Colete dados de **duas fontes distintas** com diferentes estratégias de scraping
-2. Implemente um **sistema de filas com RabbitMQ** para gerenciamento de jobs
-3. Persista dados em **PostgreSQL**
-4. Exponha uma **API REST**
-5. Tenha **testes automatizados** (unitários e integração)
-6. Seja **containerizada** e executável via `docker-compose up`
-7. Tenha **CI/CD** com GitHub Actions
-
----
-
-## Arquitetura Esperada
+## Arquitetura
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -77,53 +48,29 @@ Construir uma aplicação que:
                     └─────────────┘
 ```
 
----
+## Como Executar
 
-## Sites Alvo
+### Pré-requisitos
 
-### 1. Hockey Teams
+- Docker
+- Docker Compose
 
-**URL:** https://www.scrapethissite.com/pages/forms/
+### Passos
 
-**Características:** Página HTML com paginação tradicional
+```bash
+# 1. Copiar exemplo de variáveis de ambiente
+cp .env.example .env
 
-**Dados a coletar:**
-- Team Name
-- Year
-- Wins, Losses, OT Losses
-- Win %, Goals For (GF), Goals Against (GA), Goal Difference
+# 2. Subir os serviços
+docker-compose up --build
 
----
+# 3. Acessar os serviços
+# API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+# RabbitMQ Management: http://localhost:15672
+```
 
-### 2. Oscar Winning Films
-
-**URL:** https://www.scrapethissite.com/pages/ajax-javascript/
-
-**Características:** Dados carregados via JavaScript/AJAX
-
-**Dados a coletar:**
-- Year, Title, Nominations, Awards, Best Picture
-
----
-
-## Requisitos Técnicos
-
-### Stack Obrigatória
-
-| Tecnologia | Uso |
-|------------|-----|
-| **FastAPI** | Framework web |
-| **Pydantic** | Validação e serialização |
-| **SQLAlchemy** | ORM para persistência |
-| **PostgreSQL** | Banco de dados |
-| **RabbitMQ** | Sistema de filas |
-| **Selenium** | Disponível para páginas dinâmicas |
-| **Docker + Docker Compose** | Containerização |
-| **GitHub Actions** | CI/CD |
-
----
-
-## Endpoints da API (Assíncronos)
+## Endpoints da API
 
 ```
 # Agendar coletas
@@ -141,105 +88,42 @@ GET  /results/hockey        → Todos os dados coletados de Hockey
 GET  /results/oscar         → Todos os dados coletados de Oscar
 ```
 
-**Fluxo assíncrono:**
-1. `POST /crawl/*` publica mensagem no RabbitMQ e retorna `job_id` imediatamente
-2. Worker consome a mensagem e executa o crawling
-3. `GET /jobs/{job_id}` para verificar status (pending, running, completed, failed)
-4. `GET /jobs/{job_id}/results` para obter os dados coletados por aquele job
+## Desenvolvimento
 
----
-
-## Testes
-
-| Tipo | Descrição |
-|------|-----------|
-| **Unitários** | Testar lógica de negócio, parsers, validações |
-| **Integração** | Testar API, filas e banco usando Testcontainers |
-
-**Não é necessário** testar crawling real contra os sites.
-
----
-
-## CI/CD com GitHub Actions
-
-O pipeline deve executar:
-
-1. **Lint** - Verificar código (ruff, black, etc.)
-2. **Testes unitários** - pytest
-3. **Testes de integração** - pytest com Testcontainers
-4. **Build** - Construir imagem Docker
-5. **Push** - Enviar imagem para Google Container Registry (GCR)
-
----
-
-## Critérios de Avaliação
-
-| Critério | Peso |
-|----------|------|
-| **Arquitetura** | Alto - Design, separação de responsabilidades, uso do RabbitMQ |
-| **Qualidade de código** | Alto - SOLID, tipagem, boas práticas |
-| **Funcionamento** | Alto - A solução deve funcionar corretamente |
-| **Testes** | Alto - Unitários e integração com Testcontainers |
-| **CI/CD** | Alto - Pipeline funcional com push para GCR |
-| **Tratamento de erros** | Médio - Robustez e resiliência |
-| **Documentação** | Baixo |
-
----
-
-## Ambiente de Desenvolvimento
-
-### Nix + direnv (Recomendado - Linux)
-
-#### 1. Instalar Nix
+### Ambiente Nix + direnv (Recomendado - Linux)
 
 ```bash
-sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
-```
-
-#### 2. Habilitar Flakes
-
-Adicione ao `~/.config/nix/nix.conf`:
-
-```
-experimental-features = nix-command flakes
-```
-
-#### 3. Instalar direnv
-
-```bash
-# Debian/Ubuntu
-sudo apt install direnv
-
-# Fedora
-sudo dnf install direnv
-
-# Arch
-sudo pacman -S direnv
-```
-
-Adicione ao seu shell (`~/.bashrc` ou `~/.zshrc`):
-
-```bash
-eval "$(direnv hook bash)"  # ou zsh
-```
-
-#### 4. Rodar
-
-O `.envrc` e `flake.nix` já vêm prontos no repositório. Basta permitir o direnv e o ambiente será carregado automaticamente:
-
-```bash
+# Permitir direnv
 direnv allow
+
+# O ambiente será carregado automaticamente
 ```
 
-Commite o `flake.lock` no seu repositório.
+### Testes
 
----
+```bash
+# Rodar todos os testes
+pytest
 
-## Regras
+# Rodar com coverage
+pytest --cov=app tests/
+```
 
-1. **Entrega:** Fork deste repositório
-2. **Dúvidas:** ti@bpcreditos.com.br | gabrielpelizzaro@gmail.com
+### Linting
 
----
+```bash
+# Verificar código
+ruff check app/ tests/
 
-**Queremos ver como você arquiteta soluções, não apenas como escreve código.**
+# Formatar código
+black app/ tests/
+```
+
+## Stack Tecnológica
+
+- **FastAPI** - Framework web
+- **SQLAlchemy** - ORM para PostgreSQL
+- **RabbitMQ** - Sistema de filas de mensagens
+- **BeautifulSoup4** - Scraping de páginas estáticas
+- **Selenium** - Scraping de páginas dinâmicas
+- **Docker** - Containerização
