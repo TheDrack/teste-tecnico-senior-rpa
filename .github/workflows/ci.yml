@@ -1,0 +1,145 @@
+name: CI/CD Pipeline
+
+# Workflow executado em push e pull requests
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job de Lint - Verifica qualidade do código
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Cache dependências
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Executar Ruff (linting)
+        run: |
+          ruff check app/ tests/
+        continue-on-error: true
+      
+      - name: Executar Black (formatação)
+        run: |
+          black --check app/ tests/
+        continue-on-error: true
+      
+      - name: Executar MyPy (type checking)
+        run: |
+          mypy app/ --ignore-missing-imports
+        continue-on-error: true
+
+  # Job de Testes - Executa testes unitários e de integração
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Cache dependências
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Executar testes unitários
+        run: |
+          pytest tests/unit/ -v --tb=short
+      
+      - name: Executar testes de integração
+        run: |
+          pytest tests/integration/ -v --tb=short
+        continue-on-error: true
+
+  # Job de Build - Constrói imagem Docker
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        run: |
+          docker build -t rpa-scraping-system:latest .
+      
+      - name: Test Docker image
+        run: |
+          docker images rpa-scraping-system:latest
+
+  # Job de Deploy (opcional) - Push para Google Container Registry
+  # NOTA: Requer configuração de credenciais GCP como secrets
+  deploy:
+    name: Push to GCR
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      # PREENCHER: Configurar autenticação GCP
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      
+      # PREENCHER: Configurar Docker para GCR
+      # - name: Configure Docker for GCR
+      #   run: |
+      #     gcloud auth configure-docker gcr.io
+      
+      # PREENCHER: Build e Push da imagem
+      # - name: Build and Push to GCR
+      #   run: |
+      #     docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/rpa-scraping:${{ github.sha }} .
+      #     docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/rpa-scraping:${{ github.sha }}
+      
+      - name: Placeholder - Deploy desabilitado
+        run: |
+          echo "Deploy para GCR requer configuração de credenciais"
+          echo "Configure os seguintes secrets no GitHub:"
+          echo "  - GCP_CREDENTIALS: JSON das credenciais da service account"
+          echo "  - GCP_PROJECT_ID: ID do projeto GCP"
