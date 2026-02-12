@@ -96,13 +96,13 @@ class Settings(BaseSettings):
         description="Delay entre requests (segundos) para evitar sobrecarga",
     )
 
-    # PREENCHER: URLs dos sites a fazer scraping (valores exemplo)
+    # URLs dos sites a fazer scraping (extraído de REQUIREMENTS.md)
     hockey_url: str = Field(
-        default="https://PREENCHER_URL_HOCKEY",
+        default="https://www.scrapethissite.com/pages/forms/",
         description="URL do site de dados de Hockey",
     )
     oscar_url: str = Field(
-        default="https://PREENCHER_URL_OSCAR",
+        default="https://www.scrapethissite.com/pages/ajax-javascript/",
         description="URL do site de dados de Oscar",
     )
 

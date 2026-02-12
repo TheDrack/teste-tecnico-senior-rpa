@@ -1,5 +1,24 @@
 name: CI/CD Pipeline
 
+# ==================== CONFIGURAÇÃO DE SECRETS ====================
+# Para produção, configure os seguintes secrets no GitHub:
+# Settings → Secrets and variables → Actions → New repository secret
+#
+# Secrets necessários:
+#   - DATABASE_URL: URL completa do PostgreSQL (ex: postgresql://user:pass@host:5432/db)
+#   - RABBITMQ_HOST: Host do servidor RabbitMQ
+#   - RABBITMQ_PORT: Porta do RabbitMQ (padrão: 5672)
+#   - RABBITMQ_USER: Usuário do RabbitMQ
+#   - RABBITMQ_PASSWORD: Senha do RabbitMQ
+#   - API_PORT: Porta da API (padrão: 8000)
+#   - DB_PORT: Porta do PostgreSQL (padrão: 5432)
+#   - RABBITMQ_MGMT_PORT: Porta do RabbitMQ Management UI (padrão: 15672)
+#   - GCP_CREDENTIALS: (Opcional) JSON das credenciais GCP para deploy
+#   - GCP_PROJECT_ID: (Opcional) ID do projeto GCP
+#
+# Veja CONFIGURATION.md para detalhes completos
+# ==================================================================
+
 # Workflow executado em push e pull requests
 on:
   push:
@@ -56,6 +75,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     
+    # Exemplo de uso de secrets do GitHub para variáveis de ambiente
+    # Descomente e configure os secrets necessários no GitHub
+    # env:
+    #   DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    #   RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
+    #   RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
+    #   RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
+    #   RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -92,6 +120,13 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: test
+    
+    # Exemplo de uso de secrets para build em ambiente de produção
+    # env:
+    #   API_PORT: ${{ secrets.API_PORT }}
+    #   DB_PORT: ${{ secrets.DB_PORT }}
+    #   RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT }}
+    #   RABBITMQ_MGMT_PORT: ${{ secrets.RABBITMQ_MGMT_PORT }}
     
     steps:
       - name: Checkout código

@@ -2,6 +2,8 @@
 
 Este documento explica como usar este template para criar seu próprio sistema de scraping RPA.
 
+> ⚙️ **Para referência completa de configuração, veja [CONFIGURATION.md](CONFIGURATION.md)**
+
 ## 📋 Visão Geral
 
 Este template fornece uma estrutura completa e pronta para uso de um sistema RPA com:
@@ -18,12 +20,18 @@ Este template fornece uma estrutura completa e pronta para uso de um sistema RPA
 
 ### 1. Configurar Variáveis de Ambiente
 
+> ⚙️ **Veja [CONFIGURATION.md](CONFIGURATION.md) para lista completa de todas as configurações**
+
 ```bash
 # Copiar arquivo de exemplo
 cp .env.example .env
 
 # Editar .env e preencher as variáveis marcadas com PREENCHER_*
 ```
+
+**URLs dos sites já preenchidas de REQUIREMENTS.md:**
+- Hockey: `https://www.scrapethissite.com/pages/forms/`
+- Oscar: `https://www.scrapethissite.com/pages/ajax-javascript/`
 
 Variáveis principais a configurar:
 
@@ -33,12 +41,16 @@ DATABASE_URL=postgresql://SEU_USER:SUA_SENHA@SEU_HOST:5432/SEU_DB
 
 # RabbitMQ
 RABBITMQ_HOST=SEU_HOST_RABBITMQ
+RABBITMQ_PORT=5672
 RABBITMQ_USER=SEU_USER
 RABBITMQ_PASSWORD=SUA_SENHA
 
-# URLs dos sites para scraping
-HOCKEY_URL=https://url-do-site-hockey.com
-OSCAR_URL=https://url-do-site-oscar.com
+# URLs dos sites (já preenchidas de REQUIREMENTS.md)
+HOCKEY_URL=https://www.scrapethissite.com/pages/forms/
+OSCAR_URL=https://www.scrapethissite.com/pages/ajax-javascript/
+
+# Para produção, use GitHub Secrets em vez de valores hardcoded
+# Veja CONFIGURATION.md para detalhes
 ```
 
 ### 2. Adaptar os Scrapers
