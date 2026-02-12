@@ -211,6 +211,9 @@ mypy app/ --ignore-missing-imports
 ```
 
 ### Ambiente Nix (Linux)
+ℹ️ Nota sobre o ambiente de desenvolvimento
+A validação principal do projeto foi realizada utilizando Docker e docker-compose, que também fornecem reprodutibilidade completa de ambiente, independência de sistema operacional e isolamento de dependências.
+Essa abordagem foi priorizada por ser multiplataforma e amplamente utilizada em ambientes de produção e CI/CD.
 
 ```bash
 # Permitir direnv
