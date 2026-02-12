@@ -15,10 +15,14 @@ Endpoints disponíveis:
 A API é assíncrona e usa RabbitMQ para processamento em background.
 """
 
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import get_db, init_db
 from app.core.rabbitmq import get_rabbitmq_connection
 from app.core.config import settings
 from app.models import Job, JobStatus, JobType, HockeyData, OscarData
@@ -33,6 +37,36 @@ from app.schemas import (
     OscarDataListResponse,
 )
 
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO if settings.debug else logging.WARNING,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    Gerencia o ciclo de vida da aplicação.
+    
+    Executa setup na inicialização e cleanup no encerramento.
+    """
+    # Startup
+    logger.info("Inicializando aplicação...")
+    try:
+        init_db()
+        logger.info("Banco de dados inicializado")
+    except Exception as e:
+        logger.error(f"Erro ao inicializar banco de dados: {e}")
+    
+    logger.info("Aplicação inicializada com sucesso")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Encerrando aplicação...")
+
 
 # Inicializar aplicação FastAPI
 app = FastAPI(
@@ -41,20 +75,8 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """
-    Evento executado ao iniciar a aplicação.
-
-    Inicializa o banco de dados criando tabelas se necessário.
-    """
-    print("[API] Inicializando aplicação...")
-    # PREENCHER: Em produção, usar Alembic para migrations
-    # init_db()  # Descomentar para criar tabelas automaticamente
-    print("[API] Aplicação inicializada")
 
 
 @app.get("/", tags=["Health"])
@@ -77,6 +99,74 @@ async def root() -> dict:
 
 
 # ==================== Crawl Endpoints ====================
+
+
+def _publish_to_rabbitmq(queue_name: str, job_id: int, job_type: str) -> None:
+    """
+    Helper para publicar mensagens no RabbitMQ.
+    
+    Args:
+        queue_name: Nome da fila
+        job_id: ID do job
+        job_type: Tipo do job (hockey, oscar)
+        
+    Raises:
+        Exception: Se falhar ao publicar mensagem
+    """
+    rabbitmq = get_rabbitmq_connection()
+    try:
+        rabbitmq.connect()
+        rabbitmq.declare_queue(queue_name)
+        rabbitmq.publish_message(queue_name, {"job_id": job_id, "type": job_type})
+    finally:
+        rabbitmq.close()
+
+
+def _schedule_crawl_job(
+    db: Session, job_type: JobType, queue_name: str, type_name: str, message_suffix: str
+) -> CrawlResponse:
+    """
+    Helper genérico para agendar jobs de scraping.
+    
+    Args:
+        db: Sessão do banco de dados
+        job_type: Tipo do job (JobType enum)
+        queue_name: Nome da fila RabbitMQ
+        type_name: Nome do tipo para a mensagem
+        message_suffix: Sufixo para mensagem de sucesso
+        
+    Returns:
+        CrawlResponse: Informações do job criado
+        
+    Raises:
+        HTTPException: Se falhar ao criar job ou publicar mensagem
+    """
+    # Criar job no banco
+    job = Job(type=job_type, status=JobStatus.PENDING)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Publicar mensagem no RabbitMQ
+    try:
+        _publish_to_rabbitmq(queue_name, job.id, type_name)
+    except Exception as e:
+        # Se falhar ao publicar, marcar job como failed
+        job.status = JobStatus.FAILED
+        job.error_message = f"Falha ao publicar mensagem: {str(e)}"
+        db.commit()
+        logger.error(f"Erro ao agendar job {job.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao agendar job: {str(e)}",
+        )
+
+    logger.info(f"Job {job.id} ({job_type}) agendado com sucesso")
+    return CrawlResponse(
+        job_id=job.id,
+        message=f"Job de scraping {message_suffix} agendado com sucesso",
+        status=job.status,
+    )
 
 
 @app.post(
@@ -110,35 +200,8 @@ async def crawl_hockey(db: Session = Depends(get_db)) -> CrawlResponse:
         >>>   "status": "pending"
         >>> }
     """
-    # Criar job no banco
-    job = Job(type=JobType.HOCKEY, status=JobStatus.PENDING)
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-
-    # Publicar mensagem no RabbitMQ
-    try:
-        rabbitmq = get_rabbitmq_connection()
-        rabbitmq.connect()
-        rabbitmq.declare_queue(settings.rabbitmq_queue_hockey)
-        rabbitmq.publish_message(
-            settings.rabbitmq_queue_hockey, {"job_id": job.id, "type": "hockey"}
-        )
-        rabbitmq.close()
-    except Exception as e:
-        # Se falhar ao publicar, marcar job como failed
-        job.status = JobStatus.FAILED
-        job.error_message = f"Falha ao publicar mensagem: {str(e)}"
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao agendar job: {str(e)}",
-        )
-
-    return CrawlResponse(
-        job_id=job.id,
-        message="Job de scraping de Hockey agendado com sucesso",
-        status=job.status,
+    return _schedule_crawl_job(
+        db, JobType.HOCKEY, settings.rabbitmq_queue_hockey, "hockey", "de Hockey"
     )
 
 
@@ -170,36 +233,9 @@ async def crawl_oscar(db: Session = Depends(get_db)) -> CrawlResponse:
         >>>   "status": "pending"
         >>> }
     """
-    # Criar job no banco
-    job = Job(type=JobType.OSCAR, status=JobStatus.PENDING)
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-
-    # Publicar mensagem no RabbitMQ
-    try:
-        rabbitmq = get_rabbitmq_connection()
-        rabbitmq.connect()
-        rabbitmq.declare_queue(settings.rabbitmq_queue_oscar)
-        rabbitmq.publish_message(
-            settings.rabbitmq_queue_oscar, {"job_id": job.id, "type": "oscar"}
-        )
-        rabbitmq.close()
-    except Exception as e:
-        job.status = JobStatus.FAILED
-        job.error_message = f"Falha ao publicar mensagem: {str(e)}"
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao agendar job: {str(e)}",
-        )
-
-    return CrawlResponse(
-        job_id=job.id,
-        message="Job de scraping de Oscar agendado com sucesso",
-        status=job.status,
+    return _schedule_crawl_job(
+        db, JobType.OSCAR, settings.rabbitmq_queue_oscar, "oscar", "de Oscar"
     )
-
 
 @app.post(
     "/crawl/all",
@@ -236,31 +272,19 @@ async def crawl_all(db: Session = Depends(get_db)) -> CrawlResponse:
 
     # Publicar mensagens em ambas as filas
     try:
-        rabbitmq = get_rabbitmq_connection()
-        rabbitmq.connect()
-
-        # Fila de Hockey
-        rabbitmq.declare_queue(settings.rabbitmq_queue_hockey)
-        rabbitmq.publish_message(
-            settings.rabbitmq_queue_hockey, {"job_id": job.id, "type": "hockey"}
-        )
-
-        # Fila de Oscar
-        rabbitmq.declare_queue(settings.rabbitmq_queue_oscar)
-        rabbitmq.publish_message(
-            settings.rabbitmq_queue_oscar, {"job_id": job.id, "type": "oscar"}
-        )
-
-        rabbitmq.close()
+        _publish_to_rabbitmq(settings.rabbitmq_queue_hockey, job.id, "hockey")
+        _publish_to_rabbitmq(settings.rabbitmq_queue_oscar, job.id, "oscar")
     except Exception as e:
         job.status = JobStatus.FAILED
         job.error_message = f"Falha ao publicar mensagens: {str(e)}"
         db.commit()
+        logger.error(f"Erro ao agendar jobs {job.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao agendar jobs: {str(e)}",
         )
 
+    logger.info(f"Job {job.id} (all) agendado com sucesso")
     return CrawlResponse(
         job_id=job.id,
         message="Jobs de scraping agendados com sucesso",

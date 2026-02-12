@@ -10,10 +10,14 @@ e filtros opcionais via formulário GET.
 
 from typing import List, Dict, Any, Optional
 import time
+import logging
 import requests
 from bs4 import BeautifulSoup
 
 from app.core.config import settings
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 
 class HockeyScraper:
@@ -91,7 +95,7 @@ class HockeyScraper:
             if max_pages and page > max_pages:
                 break
 
-            print(f"[Hockey] Coletando página {page}")
+            logger.info(f"Coletando página {page} de Hockey")
 
             page_data = self.scrape_page(page)
             if not page_data:
@@ -102,6 +106,7 @@ class HockeyScraper:
 
             time.sleep(settings.scraper_delay)
 
+        logger.info(f"Hockey scraping concluído: {len(all_data)} registros coletados")
         return all_data
 
     def close(self) -> None:
@@ -109,6 +114,12 @@ class HockeyScraper:
 
 
 def scrape_hockey_data() -> List[Dict[str, Any]]:
+    """
+    Função de alto nível para executar scraping de Hockey.
+    
+    Returns:
+        Lista de dicionários com dados de times de Hockey
+    """
     scraper = HockeyScraper()
     try:
         return scraper.scrape_all_pages()

@@ -9,15 +9,16 @@ A configuração é obtida do módulo config.py que carrega do .env
 
 from typing import Generator
 from sqlalchemy import create_engine, Engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 
 from app.core.config import settings
 
 
 # Base class para todos os modelos SQLAlchemy
 # Todos os models devem herdar desta classe
-Base = declarative_base()
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+    pass
 
 
 def create_db_engine() -> Engine:
@@ -91,8 +92,7 @@ def init_db() -> None:
         >>> # Todas as tabelas foram criadas
     """
     # Importar todos os models aqui para que sejam registrados no Base
-    # PREENCHER: Importar models quando implementados
-    # from app import models
+    from app import models  # noqa: F401
 
     # Criar todas as tabelas
     Base.metadata.create_all(bind=engine)

@@ -10,6 +10,7 @@ https://www.scrapethissite.com/pages/ajax-javascript/
 
 from typing import List, Dict, Any, Optional
 import time
+import logging
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -19,6 +20,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from app.core.config import settings
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 
 class OscarScraper:
@@ -44,7 +48,7 @@ class OscarScraper:
         self.wait = WebDriverWait(self.driver, settings.selenium_timeout)
 
     def scrape_all_data(self) -> List[Dict[str, Any]]:
-        print(f"[Oscar] Acessando {self.base_url}")
+        logger.info(f"Acessando {self.base_url}")
         self.driver.get(self.base_url)
 
         try:
@@ -55,7 +59,7 @@ class OscarScraper:
                 )
             )
         except TimeoutException:
-            print("[Oscar] Timeout aguardando lista de anos")
+            logger.error("Timeout aguardando lista de anos")
             return []
 
         all_movies: List[Dict[str, Any]] = []
@@ -64,7 +68,7 @@ class OscarScraper:
 
         for link in year_links:
             year = link.get_attribute("data-year")
-            print(f"[Oscar] Coletando dados do ano {year}")
+            logger.info(f"Coletando dados do ano {year}")
 
             # Clique via JS evita problemas de overlay
             self.driver.execute_script("arguments[0].click();", link)
@@ -76,7 +80,7 @@ class OscarScraper:
                     )
                 )
             except TimeoutException:
-                print(f"[Oscar] Timeout carregando filmes de {year}")
+                logger.warning(f"Timeout carregando filmes de {year}")
                 continue
 
             time.sleep(0.5)  # folga para AJAX completar
@@ -84,13 +88,14 @@ class OscarScraper:
             movies = self._parse_oscar_data()
             all_movies.extend(movies)
 
+        logger.info(f"Oscar scraping concluído: {len(all_movies)} registros coletados")
         return all_movies
 
     def _parse_oscar_data(self) -> List[Dict[str, Any]]:
         movies_data: List[Dict[str, Any]] = []
 
         rows = self.driver.find_elements(By.CSS_SELECTOR, "tr.film")
-        print(f"[Oscar] Filmes encontrados: {len(rows)}")
+        logger.debug(f"Filmes encontrados: {len(rows)}")
 
         for row in rows:
             movie = self._extract_movie_data(row)
@@ -148,7 +153,7 @@ class OscarScraper:
             return self._parse_oscar_data()
 
         except TimeoutException:
-            print(f"[Oscar] Não foi possível carregar dados de {year}")
+            logger.warning(f"Não foi possível carregar dados de {year}")
             return []
 
     def close(self) -> None:
@@ -157,6 +162,12 @@ class OscarScraper:
 
 
 def scrape_oscar_data() -> List[Dict[str, Any]]:
+    """
+    Função de alto nível para executar scraping de Oscar.
+    
+    Returns:
+        Lista de dicionários com dados de filmes premiados
+    """
     scraper = OscarScraper()
     try:
         return scraper.scrape_all_data()

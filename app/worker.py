@@ -13,6 +13,7 @@ O worker:
 """
 
 import json
+import logging
 import traceback
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
@@ -24,6 +25,13 @@ from app.core.config import settings
 from app.models import Job, JobStatus, HockeyData, OscarData
 from app.static_scraper.hockey import scrape_hockey_data
 from app.dynamic_scraper.oscar import scrape_oscar_data
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 class ScraperWorker:
@@ -57,7 +65,7 @@ class ScraperWorker:
             >>> worker = ScraperWorker()
             >>> worker.start()  # Bloqueia aqui
         """
-        print("[Worker] Iniciando worker de scraping...")
+        logger.info("Iniciando worker de scraping...")
 
         # Conectar ao RabbitMQ
         self.rabbitmq.connect()
@@ -66,17 +74,11 @@ class ScraperWorker:
         self.rabbitmq.declare_queue(settings.rabbitmq_queue_hockey)
         self.rabbitmq.declare_queue(settings.rabbitmq_queue_oscar)
 
-        print("[Worker] Escutando filas:")
-        print(f"  - {settings.rabbitmq_queue_hockey}")
-        print(f"  - {settings.rabbitmq_queue_oscar}")
+        logger.info("Escutando filas:")
+        logger.info(f"  - {settings.rabbitmq_queue_hockey}")
+        logger.info(f"  - {settings.rabbitmq_queue_oscar}")
 
-        # PREENCHER: Se precisar consumir de múltiplas filas simultaneamente,
-        # pode ser necessário usar threads ou multiprocessing
-
-        # Por simplicidade, consumir de uma fila por vez
-        # Ou implementar lógica para consumir de ambas
-
-        # Exemplo: consumir apenas de hockey (ADAPTAR conforme necessário)
+        # Consumir de ambas as filas simultaneamente
         self._consume_from_queues()
 
     def _consume_from_queues(self) -> None:
@@ -100,7 +102,7 @@ class ScraperWorker:
         )
 
         # Iniciar consumo
-        print("[Worker] Aguardando mensagens...")
+        logger.info("Aguardando mensagens...")
         self.rabbitmq.channel.start_consuming()
 
     def _process_hockey_message(
@@ -119,7 +121,7 @@ class ScraperWorker:
             properties: Propriedades da mensagem
             body: Corpo da mensagem (JSON)
         """
-        print(f"[Worker] Recebida mensagem de Hockey: {body}")
+        logger.info(f"Recebida mensagem de Hockey: {body}")
 
         try:
             # Parsear mensagem JSON
@@ -127,7 +129,7 @@ class ScraperWorker:
             job_id = message.get("job_id")
 
             if not job_id:
-                print("[Worker] Mensagem sem job_id, ignorando")
+                logger.warning("Mensagem sem job_id, ignorando")
                 channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
@@ -136,12 +138,12 @@ class ScraperWorker:
 
             # Confirmar processamento
             channel.basic_ack(delivery_tag=method.delivery_tag)
-            print(f"[Worker] Job {job_id} (Hockey) processado com sucesso")
+            logger.info(f"Job {job_id} (Hockey) processado com sucesso")
 
         except Exception as e:
-            print(f"[Worker] Erro ao processar mensagem de Hockey: {e}")
-            traceback.print_exc()
-            # PREENCHER: Decidir estratégia de retry ou dead-letter queue
+            logger.error(f"Erro ao processar mensagem de Hockey: {e}")
+            logger.error(traceback.format_exc())
+            # Rejeitar mensagem sem requeue para evitar loop infinito
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def _process_oscar_message(
@@ -160,7 +162,7 @@ class ScraperWorker:
             properties: Propriedades da mensagem
             body: Corpo da mensagem (JSON)
         """
-        print(f"[Worker] Recebida mensagem de Oscar: {body}")
+        logger.info(f"Recebida mensagem de Oscar: {body}")
 
         try:
             # Parsear mensagem JSON
@@ -168,7 +170,7 @@ class ScraperWorker:
             job_id = message.get("job_id")
 
             if not job_id:
-                print("[Worker] Mensagem sem job_id, ignorando")
+                logger.warning("Mensagem sem job_id, ignorando")
                 channel.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
@@ -177,12 +179,12 @@ class ScraperWorker:
 
             # Confirmar processamento
             channel.basic_ack(delivery_tag=method.delivery_tag)
-            print(f"[Worker] Job {job_id} (Oscar) processado com sucesso")
+            logger.info(f"Job {job_id} (Oscar) processado com sucesso")
 
         except Exception as e:
-            print(f"[Worker] Erro ao processar mensagem de Oscar: {e}")
-            traceback.print_exc()
-            # PREENCHER: Decidir estratégia de retry ou dead-letter queue
+            logger.error(f"Erro ao processar mensagem de Oscar: {e}")
+            logger.error(traceback.format_exc())
+            # Rejeitar mensagem sem requeue para evitar loop infinito
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def _process_hockey_job(self, job_id: int) -> None:
@@ -198,7 +200,7 @@ class ScraperWorker:
             # Buscar job no banco
             job = db.query(Job).filter(Job.id == job_id).first()
             if not job:
-                print(f"[Worker] Job {job_id} não encontrado no banco")
+                logger.warning(f"Job {job_id} não encontrado no banco")
                 return
 
             # Atualizar status para RUNNING
@@ -206,7 +208,7 @@ class ScraperWorker:
             db.commit()
 
             # Executar scraping
-            print(f"[Worker] Executando scraping de Hockey para job {job_id}...")
+            logger.info(f"Executando scraping de Hockey para job {job_id}...")
             hockey_data_list = scrape_hockey_data()
 
             # Salvar dados no banco
@@ -218,16 +220,17 @@ class ScraperWorker:
             job.status = JobStatus.COMPLETED
             db.commit()
 
-            print(
-                f"[Worker] Job {job_id} concluído. Salvos {len(hockey_data_list)} registros."
+            logger.info(
+                f"Job {job_id} concluído. Salvos {len(hockey_data_list)} registros."
             )
 
         except Exception as e:
             # Atualizar status para FAILED
             job.status = JobStatus.FAILED
-            job.error_message = str(e)
+            job.error_message = f"{str(e)}\n{traceback.format_exc()}"
             db.commit()
-            print(f"[Worker] Job {job_id} falhou: {e}")
+            logger.error(f"Job {job_id} falhou: {e}")
+            logger.error(traceback.format_exc())
             raise
         finally:
             db.close()
@@ -245,7 +248,7 @@ class ScraperWorker:
             # Buscar job no banco
             job = db.query(Job).filter(Job.id == job_id).first()
             if not job:
-                print(f"[Worker] Job {job_id} não encontrado no banco")
+                logger.warning(f"Job {job_id} não encontrado no banco")
                 return
 
             # Atualizar status para RUNNING
@@ -253,7 +256,7 @@ class ScraperWorker:
             db.commit()
 
             # Executar scraping
-            print(f"[Worker] Executando scraping de Oscar para job {job_id}...")
+            logger.info(f"Executando scraping de Oscar para job {job_id}...")
             oscar_data_list = scrape_oscar_data()
 
             # Salvar dados no banco
@@ -265,16 +268,17 @@ class ScraperWorker:
             job.status = JobStatus.COMPLETED
             db.commit()
 
-            print(
-                f"[Worker] Job {job_id} concluído. Salvos {len(oscar_data_list)} registros."
+            logger.info(
+                f"Job {job_id} concluído. Salvos {len(oscar_data_list)} registros."
             )
 
         except Exception as e:
             # Atualizar status para FAILED
             job.status = JobStatus.FAILED
-            job.error_message = str(e)
+            job.error_message = f"{str(e)}\n{traceback.format_exc()}"
             db.commit()
-            print(f"[Worker] Job {job_id} falhou: {e}")
+            logger.error(f"Job {job_id} falhou: {e}")
+            logger.error(traceback.format_exc())
             raise
         finally:
             db.close()
@@ -288,7 +292,7 @@ class ScraperWorker:
             >>> # ... em outro thread/signal handler ...
             >>> worker.stop()
         """
-        print("[Worker] Parando worker...")
+        logger.info("Parando worker...")
         if self.rabbitmq.channel:
             self.rabbitmq.channel.stop_consuming()
         self.rabbitmq.close()
@@ -307,11 +311,11 @@ def main() -> None:
     try:
         worker.start()
     except KeyboardInterrupt:
-        print("\n[Worker] Recebido sinal de interrupção")
+        logger.info("Recebido sinal de interrupção")
         worker.stop()
     except Exception as e:
-        print(f"[Worker] Erro fatal: {e}")
-        traceback.print_exc()
+        logger.error(f"Erro fatal: {e}")
+        logger.error(traceback.format_exc())
         worker.stop()
 
 
