@@ -10,7 +10,6 @@ Todos os modelos herdam de Base (definido em database.py)
 e usam Type Hints para melhor validação.
 """
 
-from typing import Optional, List
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -84,28 +83,29 @@ class Job(Base):
     """
 
     __tablename__ = "jobs"
+    __allow_unmapped__ = True  # Permite type hints sem Mapped[]
 
     # Campos principais
-    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    type: str = Column(SQLEnum(JobType), nullable=False, index=True)
-    status: str = Column(
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    type = Column(SQLEnum(JobType), nullable=False, index=True)
+    status = Column(
         SQLEnum(JobStatus), nullable=False, default=JobStatus.PENDING, index=True
     )
 
     # Timestamps
-    created_at: datetime = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: datetime = Column(
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     # Informações adicionais
-    error_message: Optional[str] = Column(String, nullable=True)
+    error_message = Column(String, nullable=True)
 
     # Relacionamentos (um job pode ter múltiplos resultados)
-    hockey_data: List["HockeyData"] = relationship(
+    hockey_data = relationship(
         "HockeyData", back_populates="job", cascade="all, delete-orphan"
     )
-    oscar_data: List["OscarData"] = relationship(
+    oscar_data = relationship(
         "OscarData", back_populates="job", cascade="all, delete-orphan"
     )
 
@@ -147,28 +147,29 @@ class HockeyData(Base):
     """
 
     __tablename__ = "hockey_data"
+    __allow_unmapped__ = True  # Permite type hints sem Mapped[]
 
     # Campos principais
-    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    job_id: int = Column(Integer, ForeignKey("jobs.id"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False, index=True)
 
     # Dados do time
-    team_name: str = Column(String(200), nullable=False, index=True)
-    year: int = Column(Integer, nullable=False, index=True)
+    team_name = Column(String(200), nullable=False, index=True)
+    year = Column(Integer, nullable=False, index=True)
 
     # Estatísticas de jogos
-    wins: int = Column(Integer, nullable=False, default=0)
-    losses: int = Column(Integer, nullable=False, default=0)
-    ot_losses: int = Column(Integer, nullable=False, default=0)
+    wins = Column(Integer, nullable=False, default=0)
+    losses = Column(Integer, nullable=False, default=0)
+    ot_losses = Column(Integer, nullable=False, default=0)
 
     # Estatísticas calculadas
-    win_pct: float = Column(Float, nullable=True)  # Percentual de vitórias
-    gf: int = Column(Integer, nullable=True)  # Goals For
-    ga: int = Column(Integer, nullable=True)  # Goals Against
-    diff: int = Column(Integer, nullable=True)  # Goal Difference
+    win_pct = Column(Float, nullable=True)  # Percentual de vitórias
+    gf = Column(Integer, nullable=True)  # Goals For
+    ga = Column(Integer, nullable=True)  # Goals Against
+    diff = Column(Integer, nullable=True)  # Goal Difference
 
     # Relacionamento com Job
-    job: Job = relationship("Job", back_populates="hockey_data")
+    job = relationship("Job", back_populates="hockey_data")
 
     def __repr__(self) -> str:
         """Representação string do HockeyData."""
@@ -205,22 +206,23 @@ class OscarData(Base):
     """
 
     __tablename__ = "oscar_data"
+    __allow_unmapped__ = True  # Permite type hints sem Mapped[]
 
     # Campos principais
-    id: int = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    job_id: int = Column(Integer, ForeignKey("jobs.id"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False, index=True)
 
     # Dados do filme
-    year: int = Column(Integer, nullable=False, index=True)
-    title: str = Column(String(500), nullable=False, index=True)
+    year = Column(Integer, nullable=False, index=True)
+    title = Column(String(500), nullable=False, index=True)
 
     # Estatísticas de premiação
-    nominations: int = Column(Integer, nullable=False, default=0)
-    awards: int = Column(Integer, nullable=False, default=0)
-    best_picture: bool = Column(Boolean, nullable=False, default=False, index=True)
+    nominations = Column(Integer, nullable=False, default=0)
+    awards = Column(Integer, nullable=False, default=0)
+    best_picture = Column(Boolean, nullable=False, default=False, index=True)
 
     # Relacionamento com Job
-    job: Job = relationship("Job", back_populates="oscar_data")
+    job = relationship("Job", back_populates="oscar_data")
 
     def __repr__(self) -> str:
         """Representação string do OscarData."""
