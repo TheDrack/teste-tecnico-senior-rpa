@@ -1,5 +1,50 @@
 # Teste Técnico - Desenvolvedor Senior RPA
 
+## Estrutura do Projeto
+
+```
+├── app/
+│   ├── core/             # Config, DB e Rabbit (O essencial)
+│   │   ├── __init__.py
+│   │   ├── config.py     # Configurações da aplicação
+│   │   ├── database.py   # Conexão e sessão do banco
+│   │   └── rabbitmq.py   # Conexão e gerenciamento de filas
+│   ├── static_scraper/   # Hockey (BeautifulSoup)
+│   │   ├── __init__.py
+│   │   └── hockey.py     # Scraper para dados de Hockey
+│   ├── dynamic_scraper/  # Oscar (Selenium)
+│   │   ├── __init__.py
+│   │   └── oscar.py      # Scraper para dados de Oscar
+│   ├── __init__.py
+│   ├── models.py         # DB (Job, HockeyData, OscarData)
+│   ├── schemas.py        # Pydantic (Request/Response)
+│   ├── worker.py         # O Consumer do RabbitMQ que chama os scrapers
+│   └── main.py           # FastAPI (Endpoints e disparo de mensagens)
+├── tests/                # Testes de integração
+│   ├── __init__.py
+│   ├── conftest.py       # Fixtures e configuração de testes
+│   └── test_api.py       # Testes de integração da API
+├── .env.example          # Exemplo de variáveis de ambiente
+├── docker-compose.yml    # Orquestração de containers
+├── Dockerfile            # Imagem Docker da aplicação
+└── requirements.txt      # Dependências Python
+```
+
+## Como Executar
+
+```bash
+# Copiar exemplo de variáveis de ambiente
+cp .env.example .env
+
+# Subir os serviços
+docker-compose up --build
+
+# A API estará disponível em http://localhost:8000
+# RabbitMQ Management em http://localhost:15672
+```
+
+---
+
 ## Contexto
 
 Você foi contratado para desenvolver um sistema de coleta de dados que extrai informações de múltiplas fontes web, gerencia jobs através de filas de mensagens, e disponibiliza os dados via API REST.
